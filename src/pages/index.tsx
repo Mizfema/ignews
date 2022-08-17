@@ -1,9 +1,17 @@
-
+import {GetStaticProps} from 'next'
 import Head from 'next/head'
 import { SubscribeButton } from '../components/SubscribeButton'
+import { stripe } from '../services/stripe'
 import styles from './home.module.scss'
 
-export default function Home() {
+interface HomeProps {
+  product : {
+    priceId: string,
+    amount: string
+  }
+}
+
+export default function Home({product}:HomeProps) {
   return (
     <>
       <Head>
@@ -15,7 +23,7 @@ export default function Home() {
           <span>🖐 Hey, Welcome</span>
           <h1>New about the <span>React</span> World</h1>
           <p>Get access to all the publications for<br /> 
-          <span> $9.90 month</span> </p>
+          <span> {product.amount} month </span> </p>
 
           <SubscribeButton/>
         </main>
@@ -25,4 +33,26 @@ export default function Home() {
     </>
 
   )
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+
+  const price = await stripe.prices.retrieve('price_1LWMwHF5a3idtMTjOM35gGgD', {
+    expand :['product'],
+  }) 
+
+  const product = {
+    productId: price.id,
+    amount: new Intl.NumberFormat('en-US',{
+      style: 'currency',
+      currency: 'USD'
+    }).format(price.unit_amount / 100),
+  };
+
+  return {
+    props: {
+      product,
+    },
+    revalidate: 60 * 60 * 24 // 24horas
+  }
 }
